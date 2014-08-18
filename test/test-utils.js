@@ -142,6 +142,16 @@
       var LoaderHooks = traceur.runtime.LoaderHooks;
       var loaderHooks = new LoaderHooks(null, './', fileLoader);
 
+      loaderHooks.evaluateCodeUnit = function(codeUnit) {
+        console.log(codeUnit.metadata.transcoded);
+        // Source for modules compile into calls to registerModule(url, fnc).
+        //
+        // TODO(arv): Eval in the right context.
+        var result = ('global', eval)(codeUnit.metadata.transcoded);
+        codeUnit.metadata.transformedTree = null;
+        return result;
+      }
+
       // TODO(jjb): TestLoaderHooks extends LoaderHooks. But this file is ES5.
       var options;
       loaderHooks.translateSynchronous = function(load) {

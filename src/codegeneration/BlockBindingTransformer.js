@@ -60,6 +60,7 @@ import {
 } from '../syntax/trees/ParseTrees';
 import {IdentifierToken} from '../syntax/IdentifierToken';
 import {ARGUMENTS} from '../syntax/PredefinedName';
+import {TempVarTransformer} from './TempVarTransformer';
 import {ParseTreeTransformer} from './ParseTreeTransformer';
 import {ParseTreeVisitor} from '../syntax/ParseTreeVisitor';
 import {
@@ -220,10 +221,10 @@ import {FnExtractAbruptCompletions} from './FnExtractAbruptCompletions';
  * of a function Scope to ES5. It creates a new instance of itself for every
  * new function/script it encounters.
  */
-export class BlockBindingTransformer extends ParseTreeTransformer {
+export class BlockBindingTransformer extends TempVarTransformer {
   constructor(idGenerator, reporter, tree,
               scopeBuilder = undefined, latestScope = undefined) {
-    super();
+    super(idGenerator);
     this.idGenerator_ = idGenerator;
     this.reporter_ = reporter;
     if (!scopeBuilder) {
@@ -393,7 +394,7 @@ export class BlockBindingTransformer extends ParseTreeTransformer {
     tree.declarations.forEach((variableDeclaration) => {
       var variableName = this.getVariableName_(variableDeclaration);
       var uniqueName = variableName +
-          this.idGenerator_.generateUniqueIdentifier();
+          this.getTempIdentifier();
 
       this.blockRenames_.push(new Rename(variableName, uniqueName));
       variableName = uniqueName;
@@ -467,7 +468,7 @@ export class BlockBindingTransformer extends ParseTreeTransformer {
     // Hoist the function name and assign it in the current location
     if (!this.scope_.isVarScope) {
       var fnName = tree.name.getStringValue();
-      var uniqueName = fnName + this.idGenerator_.generateUniqueIdentifier();
+      var uniqueName = fnName + this.getTempIdentifier();
       this.blockRenames_.push(new Rename(fnName, uniqueName));
       fnName = uniqueName;
 
@@ -524,7 +525,7 @@ export class BlockBindingTransformer extends ParseTreeTransformer {
             tree.initializer.declarations.map((declaration) => {
                 var variableName = this.getVariableName_(declaration);
                 var uniqueName = variableName +
-                    this.idGenerator_.generateUniqueIdentifier();
+                    this.getTempIdentifier();
 
                 renames.push(new Rename(variableName, uniqueName));
                 return new VariableDeclaration(null,
@@ -555,7 +556,7 @@ export class BlockBindingTransformer extends ParseTreeTransformer {
             tree.initializer.declarations.map((declaration) => {
           var variableName = this.getVariableName_(declaration);
               var uniqueName = variableName +
-                  this.idGenerator_.generateUniqueIdentifier();
+                  this.getTempIdentifier();
 
 
               iifeArgumentList.push(createIdentifierExpression(uniqueName));
@@ -578,7 +579,7 @@ export class BlockBindingTransformer extends ParseTreeTransformer {
       var iifeInfo = FnExtractAbruptCompletions.createIIFE(
           this.idGenerator_, tree.body, iifeParameterList, iifeArgumentList,
           () => loopLabel = loopLabel ||
-              this.idGenerator_.generateUniqueIdentifier()
+              this.getTempIdentifier()
       );
 
       tree = loopFactory(initializer, renames, iifeInfo.loopBody);
